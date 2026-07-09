@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Cache-Control" content="no-store" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>Japan 1km Mesh Viewer</title>
+    <link rel="stylesheet" href="./styles.css?v=20260708-nocache-final" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark"></span>
+          <div>
+            <h1>Japan 1km Mesh Viewer</h1>
+            <p>官方 1km mesh 人口与产业统计</p>
+          </div>
+        </div>
+        <div class="toolbar" aria-label="地图工具">
+          <label>
+            <span>指标</span>
+            <select id="metricSelect"></select>
+          </label>
+          <label>
+            <span>网格代码</span>
+            <input id="meshSearch" type="search" placeholder="例如 53394525" />
+          </label>
+          <label class="toggle-control">
+            <input id="substationToggle" type="checkbox" checked />
+            <span>变电站</span>
+          </label>
+          <label class="toggle-control">
+            <input id="generationToggle" type="checkbox" checked />
+            <span>发电站</span>
+          </label>
+          <div class="facility-filters" aria-label="设施等级筛选">
+            <fieldset class="level-filter">
+              <legend>变电站等级</legend>
+              <label class="level-chip" data-level="S"><input type="checkbox" data-facility-kind="substation" data-level="S" checked /><span>S</span></label>
+              <label class="level-chip" data-level="A"><input type="checkbox" data-facility-kind="substation" data-level="A" checked /><span>A</span></label>
+              <label class="level-chip" data-level="B"><input type="checkbox" data-facility-kind="substation" data-level="B" checked /><span>B</span></label>
+              <label class="level-chip" data-level="C"><input type="checkbox" data-facility-kind="substation" data-level="C" checked /><span>C</span></label>
+              <label class="level-chip" data-level="D"><input type="checkbox" data-facility-kind="substation" data-level="D" checked /><span>D</span></label>
+              <label class="level-chip" data-level="U"><input type="checkbox" data-facility-kind="substation" data-level="U" checked /><span>U</span></label>
+            </fieldset>
+            <fieldset class="level-filter">
+              <legend>发电站等级</legend>
+              <label class="level-chip" data-level="S"><input type="checkbox" data-facility-kind="generation" data-level="S" checked /><span>S</span></label>
+              <label class="level-chip" data-level="A"><input type="checkbox" data-facility-kind="generation" data-level="A" checked /><span>A</span></label>
+              <label class="level-chip" data-level="B"><input type="checkbox" data-facility-kind="generation" data-level="B" checked /><span>B</span></label>
+              <label class="level-chip" data-level="C"><input type="checkbox" data-facility-kind="generation" data-level="C" checked /><span>C</span></label>
+              <label class="level-chip" data-level="D"><input type="checkbox" data-facility-kind="generation" data-level="D" /><span>D</span></label>
+              <label class="level-chip" data-level="U"><input type="checkbox" data-facility-kind="generation" data-level="U" /><span>U</span></label>
+            </fieldset>
+          </div>
+          <button id="searchButton" type="button">定位</button>
+          <button id="resetButton" type="button" aria-label="重置视图">重置</button>
+        </div>
+      </header>
+
+      <section class="workspace">
+        <div class="map-pane">
+          <canvas id="meshCanvas"></canvas>
+          <div class="facility-legend" aria-label="设施等级颜色">
+            <span><i data-level="S"></i>S</span>
+            <span><i data-level="A"></i>A</span>
+            <span><i data-level="B"></i>B</span>
+            <span><i data-level="C"></i>C</span>
+            <span><i data-level="D"></i>D</span>
+            <span><i data-level="U"></i>U/未知</span>
+          </div>
+          <div class="statusbar">
+            <span id="loadStatus">加载中...</span>
+            <span id="viewportStatus"></span>
+          </div>
+        </div>
+        <aside class="detail-panel">
+          <div class="panel-head">
+            <h2 id="detailTitle">未选择网格</h2>
+            <span id="detailSub">点击地图查看详情</span>
+          </div>
+          <dl id="detailList"></dl>
+        </aside>
+      </section>
+    </main>
+    <script src="./app.js?v=20260708-nocache-final"></script>
+  </body>
+</html>

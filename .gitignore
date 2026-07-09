@@ -1,0 +1,11 @@
+.DS_Store
+Thumbs.db
+*.zip
+*.log
+
+# Keep the large raw CSV out of GitHub. The app uses the compressed .csv.gz file.
+data/mesh_1km_enriched_estimated_web.csv
+
+# Local server/cache artifacts
+__pycache__/
+.cache/

@@ -1,0 +1,14 @@
+{
+  "row_count": 184707,
+  "population_mesh_rows": 176964,
+  "economic_mesh_rows": 135716,
+  "source_files": {
+    "mesh_index": "data_delivery_package/mesh_1km_index.csv",
+    "population_mesh": "data_delivery_package/mesh_1km_official_census_2020_population_households_clean.csv",
+    "economic_mesh": "data_delivery_package/mesh_1km_official_economic_census_2021_industry_major_clean.csv"
+  },
+  "join_keys": {
+    "mesh_stats_to_mesh_index": "KEY_CODE = mesh_code"
+  },
+  "scope_note": "This visualization data uses only official 1km mesh coordinates and official mesh statistics. Municipality, electricity, industrial land, and other extracted tables are intentionally excluded for now."
+}
