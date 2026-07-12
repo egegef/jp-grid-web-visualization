@@ -568,6 +568,10 @@ function renderMetaCard(item) {
   const titleHTML = url
     ? `<a href="${escapeHTML(url)}" target="_blank" rel="noopener noreferrer">${escapeHTML(title)}</a>`
     : escapeHTML(title);
+  const localTextPath = item.local_text_path || "";
+  const localTextHTML = localTextPath
+    ? `<a class="meta-local-link" href="${escapeHTML(localTextPath)}" target="_blank" rel="noopener noreferrer">查看本地纯文本</a>`
+    : "";
   return `
     <div class="meta-card">
       <strong>${titleHTML}</strong>
@@ -578,6 +582,7 @@ function renderMetaCard(item) {
         ${runName ? `<span>批次：${escapeHTML(runName)}</span>` : ""}
       </div>
       ${evidence ? `<p>${escapeHTML(evidence)}</p>` : ""}
+      ${localTextHTML}
       <div class="meta-tags">${tags.map((tag) => `<span>${escapeHTML(tag)}</span>`).join("")}</div>
     </div>
   `;
