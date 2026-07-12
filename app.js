@@ -535,6 +535,9 @@ function updateFacilityDetail(facility) {
     ["元数据数量", facility.metadata_count ? `${facility.metadata_count} 条` : "0 条"],
     ["重要性说明", facility.importance_reason || "-"]
   );
+  if (facility.display_node_count) {
+    baseRows.splice(baseRows.length - 1, 0, ["聚合原始节点", `${facility.display_node_count} 个`]);
+  }
   detailList.innerHTML = detailRows(baseRows);
 
   const docs = facility.documents || [];
