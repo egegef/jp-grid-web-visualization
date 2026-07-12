@@ -617,7 +617,7 @@ function renderMetaCard(item) {
   const publishedAt = item.published_at || item.event_time || item.source_publish_time_normalized || "";
   const dateLabel = item.date_status === "inferred" ? "推断日期" : "时间";
   const runName = item.run_name || "";
-  const tags = [item.confidence, item.event_type, item.event_hits, item.status]
+  const tags = [item.material_scope_label || item.material_scope, item.confidence, item.event_type, item.event_hits, item.status]
     .filter(Boolean)
     .slice(0, 4);
   const titleHTML = url
