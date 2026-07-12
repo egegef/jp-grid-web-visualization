@@ -1,6 +1,6 @@
 const DATA_URL = "./data/mesh_1km_enriched_estimated_web.csv.gz";
 const META_URL = "./data/metadata.json";
-const FACILITY_URL = "./data/facilities_web.json?v=20260712-aggregated";
+const FACILITY_URL = "./data/facilities_web.json?v=20260712-level-fix";
 
 const metrics = [
   { key: "population_total_2020", label: "2020 总人口", unit: "人", palette: "population", sourceType: "官方" },
@@ -576,6 +576,19 @@ function updateFacilityDetail(facility) {
   );
   if (facility.display_node_count) {
     baseRows.splice(baseRows.length - 1, 0, ["聚合原始节点", `${facility.display_node_count} 个`]);
+    const levelDistribution = Object.entries(facility.importance_level_distribution || {})
+      .map(([level, count]) => `${level}: ${count}`)
+      .join(" / ");
+    if (levelDistribution) {
+      baseRows.splice(baseRows.length - 1, 0, ["成员等级构成", levelDistribution]);
+      baseRows.splice(baseRows.length - 1, 0, ["聚合等级规则", "取组内最高等级"]);
+    }
+    const statusDistribution = Object.entries(facility.status_distribution || {})
+      .map(([status, count]) => `${status}: ${count}`)
+      .join(" / ");
+    if (statusDistribution) {
+      baseRows.splice(baseRows.length - 1, 0, ["成员状态构成", statusDistribution]);
+    }
   }
   detailList.innerHTML = detailRows(baseRows);
 
