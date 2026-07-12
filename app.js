@@ -40,6 +40,8 @@ const canvas = document.getElementById("meshCanvas");
 const ctx = canvas.getContext("2d", { alpha: false });
 const metricSelect = document.getElementById("metricSelect");
 const meshSearch = document.getElementById("meshSearch");
+const facilitySearchInput = document.getElementById("facilitySearchInput");
+const facilitySearchResults = document.getElementById("facilitySearchResults");
 const substationToggle = document.getElementById("substationToggle");
 const generationToggle = document.getElementById("generationToggle");
 const facilityLevelInputs = Array.from(document.querySelectorAll("[data-facility-kind][data-level]"));
@@ -166,6 +168,43 @@ function prepareFacilities(payload) {
   facilityById = new Map(facilities.map((item) => [item.node_id, item]));
 }
 
+function facilitySearchFields(facility) {
+  return [facility.name_zh, facility.name_ja, facility.short_name, facility.operator, facility.node_id].filter(Boolean).map((value) => String(value).toLocaleLowerCase());
+}
+function searchFacilities(query) {
+  const normalized = query.trim().toLocaleLowerCase();
+  if (!normalized) return [];
+  return facilities.map((facility) => {
+    const fields = facilitySearchFields(facility);
+    const exact = fields.some((field) => field === normalized);
+    const prefix = fields.some((field) => field.startsWith(normalized));
+    const index = fields.reduce((best, field) => Math.min(best, field.indexOf(normalized)), Infinity);
+    return { facility, score: exact ? 0 : prefix ? 1 : 2, index };
+  }).filter((item) => item.index !== Infinity).sort((a, b) => a.score - b.score || a.index - b.index || String(a.facility.name_ja || '').localeCompare(String(b.facility.name_ja || ''))).slice(0, 10).map((item) => item.facility);
+}
+function renderFacilitySearchResults() {
+  const matches = searchFacilities(facilitySearchInput.value);
+  facilitySearchResults.innerHTML = matches.map((facility, index) => {
+    const name = escapeHTML(facility.name_zh || facility.name_ja || facility.node_id);
+    const japaneseName = facility.name_ja && facility.name_ja !== facility.name_zh ? '<span>' + escapeHTML(facility.name_ja) + '</span>' : '';
+    const kind = facility.facility_type === 'substation' ? '变电站' : '发电站';
+    const aggregate = facility.display_node_count ? ' · 聚合 ' + facility.display_node_count + ' 个原始节点' : '';
+    return '<button type="button" class="facility-search-option" data-index="' + index + '" role="option"><strong>' + name + '</strong>' + japaneseName + '<small>' + kind + ' · ' + escapeHTML(facility.operator || '运营方未记录') + aggregate + '</small></button>';
+  }).join('');
+  facilitySearchResults.hidden = matches.length === 0;
+  facilitySearchResults.querySelectorAll('.facility-search-option').forEach((option) => option.addEventListener('click', () => selectFacilityFromSearch(matches[Number(option.dataset.index)])));
+}
+function selectFacilityFromSearch(facility) {
+  if (!facility) return;
+  if (facility.facility_type === 'substation') substationToggle.checked = true;
+  if (facility.facility_type === 'generation') generationToggle.checked = true;
+  const level = facilityLevel(facility);
+  const levelInput = facilityLevelInputs.find((input) => input.dataset.facilityKind === facility.facility_type && input.dataset.level === level);
+  if (levelInput) levelInput.checked = true;
+  facilitySearchInput.value = facility.name_zh || facility.name_ja || facility.node_id;
+  facilitySearchResults.hidden = true;
+  focusFacility(facility);
+}
 function computeEstimatedLoadImportanceScores() {
   const powerRows = rows
     .filter((row) => row.estimated_power_total_1000kwh_2024 != null && row.estimated_power_total_1000kwh_2024 > 0)
@@ -689,6 +728,17 @@ function wireEvents() {
       const row = rowByCode.get(meshSearch.value.trim());
       if (row) focusRow(row);
     }
+  });
+
+  facilitySearchInput.addEventListener('input', renderFacilitySearchResults);
+  facilitySearchInput.addEventListener('focus', renderFacilitySearchResults);
+  facilitySearchInput.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') return;
+    const match = searchFacilities(facilitySearchInput.value)[0];
+    if (match) { event.preventDefault(); selectFacilityFromSearch(match); }
+  });
+  document.addEventListener('pointerdown', (event) => {
+    if (!event.target.closest('.facility-search')) facilitySearchResults.hidden = true;
   });
 
   canvas.addEventListener("pointerdown", (event) => {
