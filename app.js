@@ -1,6 +1,6 @@
 const DATA_URL = "./data/mesh_1km_enriched_estimated_web.csv.gz";
 const META_URL = "./data/metadata.json";
-const FACILITY_URL = "./data/facilities_web.json?v=20260708-nocache-final";
+const FACILITY_URL = "./data/facilities_web.json?v=20260712-aggregated";
 
 const metrics = [
   { key: "population_total_2020", label: "2020 总人口", unit: "人", palette: "population", sourceType: "官方" },
