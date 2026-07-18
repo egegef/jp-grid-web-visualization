@@ -1,6 +1,6 @@
 # Japan Grid Web Visualization
 
-日本 1km 网格、变电站、发电站及关联资料元数据的静态网页可视化项目。
+日本 1km 网格、变电站、发电站、关联资料元数据及 Balanced v2 电网拓扑的静态网页可视化项目。
 
 ## 本地运行
 
@@ -27,6 +27,7 @@ python -m http.server 8000 --bind 127.0.0.1
 - `data/facilities_web.json`：变电站、发电站节点，以及每个节点关联的 documents / facts。
 - `data/mesh_1km_enriched_estimated_web.csv.gz`：1km 网格统计数据，使用 gzip 压缩以适配 GitHub 单文件大小限制。
 - `data/metadata.json`：网格数据元信息。
+- `data/topology_balanced_v2.json.gz`：Balanced v2 设施级拓扑节点、边和质量摘要。
 
 ## GitHub Pages
 

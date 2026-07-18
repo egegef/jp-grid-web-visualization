@@ -695,6 +695,11 @@ function exposeReadOnlyDebugApi() {
       if (!row) return null;
       return worldToScreen(row.center_lon, row.center_lat);
     },
+    restoreDetail() {
+      if (selectedKind === "facility" && selected) updateFacilityDetail(selected);
+      else updateDetail(selectedKind === "mesh" ? selected : null);
+    },
+    requestRender,
   };
 }
 
