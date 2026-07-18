@@ -366,11 +366,11 @@ h1 {
 .topology-legend .topology-official {
   width: 18px;
   height: 2px;
-  background: #85908d;
+  background: #4f6769;
 }
 
 .topology-legend .topology-official {
-  background: #2f9a61;
+  background: #177044;
 }
 
 #meshCanvas {

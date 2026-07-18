@@ -730,6 +730,15 @@ function exposeReadOnlyDebugApi() {
     getZoomRatio() {
       return base.scale ? view.scale / base.scale : 1;
     },
+    getFacilityById(nodeId) {
+      return facilityById.get(nodeId) || null;
+    },
+    showFacilityDetailById(nodeId) {
+      const facility = facilityById.get(nodeId);
+      if (!facility) return false;
+      updateFacilityDetail(facility);
+      return true;
+    },
   };
 }
 

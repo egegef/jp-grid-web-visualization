@@ -1,4 +1,4 @@
-const TOPOLOGY_URL = "./data/topology_balanced_v2.json.gz";
+const TOPOLOGY_URL = "./data/topology_balanced_v2.json.gz?v=20260718-attributes-v2";
 
 const mapViewButton = document.getElementById("mapViewButton");
 const topologyViewButton = document.getElementById("topologyViewButton");
@@ -90,7 +90,6 @@ function renderTopology() {
   topologyContext.clearRect(0, 0, width, height);
 
   let visibleEdges = 0;
-  topologyContext.lineWidth = 0.7;
   for (const edge of topologyData.edges) {
     const sourceIndex = topologyNodeIndex.get(edge[0]);
     const targetIndex = topologyNodeIndex.get(edge[1]);
@@ -100,7 +99,8 @@ function renderTopology() {
     if ((source.x < 0 && target.x < 0) || (source.x > width && target.x > width) ||
         (source.y < 0 && target.y < 0) || (source.y > height && target.y > height)) continue;
     const official = edge[2] === "official_logical_relation";
-    topologyContext.strokeStyle = official ? "rgba(25,111,65,0.82)" : "rgba(31,48,52,0.28)";
+    topologyContext.lineWidth = official ? 1.5 : 1.2;
+    topologyContext.strokeStyle = official ? "rgba(18,108,62,0.95)" : "rgba(35,62,67,0.68)";
     topologyContext.beginPath();
     topologyContext.moveTo(source.x, source.y);
     topologyContext.lineTo(target.x, target.y);
@@ -184,17 +184,45 @@ function showTopologyNode(index) {
   const detailList = document.getElementById("detailList");
   document.getElementById("facilityMeta")?.remove();
   const kind = node[3] === "substation" ? "变电站" : node[3] === "plant" ? "发电站" : "发电候选设施";
+  const linkedFacilityId = node[16] || "";
+  if (linkedFacilityId && window.meshViewer?.showFacilityDetailById(linkedFacilityId)) {
+    detailSub.textContent = `${kind} · ${node[0]} · 已关联详细设施记录`;
+    const topologyItems = [
+      ["拓扑节点度数", topologyDegree[index].toLocaleString("zh-CN")],
+      ["拓扑线路挂接", node[5] ? "已挂接" : "未挂接"],
+      ["拓扑官方确认", node[6] ? "是" : "否"],
+      ["物理连通分量", node[15] || "-"],
+      ["详细记录匹配", node[17] === "name_and_distance" ? "名称与位置匹配" : "坐标精确匹配"],
+    ];
+    detailList.insertAdjacentHTML(
+      "afterbegin",
+      topologyItems.map(([label, value]) => `<dt>${escapeTopologyHTML(label)}</dt><dd>${escapeTopologyHTML(value)}</dd>`).join(""),
+    );
+    requestTopologyRender();
+    return;
+  }
   detailTitle.textContent = node[4] || node[0];
   detailSub.textContent = `${kind} · ${node[0]}`;
   const items = [
     ["节点类型", kind],
+    ["日文名", node[7] || "-"],
+    ["中文名", node[8] || "-"],
+    ["运营方", node[9] || "-"],
     ["节点度数", topologyDegree[index].toLocaleString("zh-CN")],
     ["线路挂接", node[5] ? "已挂接" : "未挂接"],
     ["官方确认", node[6] ? "是" : "否"],
+    ["物理连通分量", node[15] || "-"],
+    ["所属 1km 网格", node[13] || "-"],
+    ["需要复核", node[14] ? "是" : "否"],
     ["经度", Number(node[1]).toFixed(5)],
     ["纬度", Number(node[2]).toFixed(5)],
     ["构图版本", topologyData.quality.profile],
   ];
+  if (kind !== "变电站") {
+    items.splice(4, 0, ["能源类型", node[10] || "-"], ["装机容量", node[11] == null ? "-" : `${node[11]} MW`]);
+  } else {
+    items.splice(4, 0, ["最高电压", node[12] == null ? "-" : `${node[12]} kV`]);
+  }
   detailList.innerHTML = items
     .map(([label, value]) => `<dt>${escapeTopologyHTML(label)}</dt><dd>${escapeTopologyHTML(value)}</dd>`)
     .join("");
@@ -221,6 +249,8 @@ function showTopologyOverview() {
     ["连通分量", quality.logical_facility_graph.components.toLocaleString("zh-CN")],
     ["最大分量节点", quality.logical_facility_graph.largest_component_nodes.toLocaleString("zh-CN")],
     ["孤立设施", quality.logical_facility_graph.isolated_facilities.toLocaleString("zh-CN")],
+    ["已关联详细属性", (quality.web_attribute_links?.matched_nodes || 0).toLocaleString("zh-CN")],
+    ["含外部资料关联", (quality.web_attribute_links?.matched_with_metadata || 0).toLocaleString("zh-CN")],
     ["构图状态", "Balanced 试构图，尚非最终基线"],
   ];
   detailList.innerHTML = items

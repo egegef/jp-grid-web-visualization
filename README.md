@@ -28,6 +28,7 @@ python -m http.server 8000 --bind 127.0.0.1
 - `data/mesh_1km_enriched_estimated_web.csv.gz`：1km 网格统计数据，使用 gzip 压缩以适配 GitHub 单文件大小限制。
 - `data/metadata.json`：网格数据元信息。
 - `data/topology_balanced_v2.json.gz`：Balanced v2 设施级拓扑节点、边和质量摘要。
+- `scripts/build_topology_web_data.py`：从 Balanced 节点/边表生成网页拓扑数据，并按名称与坐标关联已有设施详情。
 
 ## GitHub Pages
 
