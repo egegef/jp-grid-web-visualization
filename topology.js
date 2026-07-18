@@ -5,9 +5,12 @@ const topologyViewButton = document.getElementById("topologyViewButton");
 const mapToolbar = document.getElementById("mapToolbar");
 const topologyToolbar = document.getElementById("topologyToolbar");
 const mapPane = document.getElementById("mapPane");
-const topologyPane = document.getElementById("topologyPane");
+const mapLegend = document.getElementById("mapLegend");
+const topologyLegend = document.getElementById("topologyLegend");
+const mapStatusbar = document.getElementById("mapStatusbar");
+const topologyStatusbar = document.getElementById("topologyStatusbar");
 const topologyCanvas = document.getElementById("topologyCanvas");
-const topologyContext = topologyCanvas.getContext("2d", { alpha: false });
+const topologyContext = topologyCanvas.getContext("2d");
 const topologyLoadStatus = document.getElementById("topologyLoadStatus");
 const topologyViewportStatus = document.getElementById("topologyViewportStatus");
 const topologyZoomLabel = document.getElementById("topologyZoomLabel");
@@ -16,13 +19,11 @@ let topologyData = null;
 let topologyLoadPromise = null;
 let topologyNodeIndex = new Map();
 let topologyDegree = null;
-let topologyWorldPoints = [];
-let topologyBaseView = { scale: 1, offsetX: 0, offsetY: 0 };
-let topologyView = { ...topologyBaseView };
 let topologySelectedIndex = -1;
 let topologyDragging = null;
 let topologySuppressClick = false;
 let topologyRenderPending = false;
+let topologyActive = false;
 
 async function fetchTopologyData() {
   const response = await fetch(TOPOLOGY_URL, { cache: "no-store" });
@@ -32,14 +33,6 @@ async function fetchTopologyData() {
   }
   const stream = response.body.pipeThrough(new DecompressionStream("gzip"));
   return new Response(stream).json();
-}
-
-function mercatorPoint(lon, lat) {
-  const latitude = Math.max(-85, Math.min(85, lat)) * Math.PI / 180;
-  return {
-    x: lon * Math.PI / 180,
-    y: -Math.log(Math.tan(Math.PI / 4 + latitude / 2)),
-  };
 }
 
 function prepareTopology(payload) {
@@ -52,7 +45,6 @@ function prepareTopology(payload) {
     if (source !== undefined) topologyDegree[source] += 1;
     if (target !== undefined) topologyDegree[target] += 1;
   }
-  topologyWorldPoints = payload.nodes.map((node) => mercatorPoint(node[1], node[2]));
   const quality = payload.quality;
   topologyLoadStatus.textContent =
     `${payload.nodes.length.toLocaleString("zh-CN")} 个设施节点 · ` +
@@ -80,44 +72,13 @@ async function ensureTopologyLoaded() {
   return topologyLoadPromise;
 }
 
-function fitTopology() {
-  if (!topologyData || !topologyWorldPoints.length) return;
-  const width = topologyCanvas.clientWidth;
-  const height = topologyCanvas.clientHeight;
-  const padding = Math.max(24, Math.min(width, height) * 0.06);
-  const bounds = topologyWorldPoints.reduce(
-    (acc, point) => ({
-      minX: Math.min(acc.minX, point.x),
-      minY: Math.min(acc.minY, point.y),
-      maxX: Math.max(acc.maxX, point.x),
-      maxY: Math.max(acc.maxY, point.y),
-    }),
-    { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity },
-  );
-  const scale = Math.min(
-    (width - padding * 2) / (bounds.maxX - bounds.minX),
-    (height - padding * 2) / (bounds.maxY - bounds.minY),
-  );
-  topologyBaseView = {
-    scale,
-    offsetX: padding - bounds.minX * scale + ((width - padding * 2) - (bounds.maxX - bounds.minX) * scale) / 2,
-    offsetY: padding - bounds.minY * scale + ((height - padding * 2) - (bounds.maxY - bounds.minY) * scale) / 2,
-  };
-  topologyView = { ...topologyBaseView };
-  updateTopologyZoomLabel();
-  requestTopologyRender();
-}
-
 function topologyScreenPoint(index) {
-  const point = topologyWorldPoints[index];
-  return {
-    x: point.x * topologyView.scale + topologyView.offsetX,
-    y: point.y * topologyView.scale + topologyView.offsetY,
-  };
+  const node = topologyData.nodes[index];
+  return window.meshViewer.projectPoint(node[1], node[2]);
 }
 
 function requestTopologyRender() {
-  if (topologyRenderPending || !topologyData) return;
+  if (topologyRenderPending || !topologyData || !topologyActive) return;
   topologyRenderPending = true;
   requestAnimationFrame(renderTopology);
 }
@@ -127,11 +88,9 @@ function renderTopology() {
   const width = topologyCanvas.clientWidth;
   const height = topologyCanvas.clientHeight;
   topologyContext.clearRect(0, 0, width, height);
-  topologyContext.fillStyle = "#f7f8f5";
-  topologyContext.fillRect(0, 0, width, height);
 
   let visibleEdges = 0;
-  topologyContext.lineWidth = 0.55;
+  topologyContext.lineWidth = 0.7;
   for (const edge of topologyData.edges) {
     const sourceIndex = topologyNodeIndex.get(edge[0]);
     const targetIndex = topologyNodeIndex.get(edge[1]);
@@ -141,7 +100,7 @@ function renderTopology() {
     if ((source.x < 0 && target.x < 0) || (source.x > width && target.x > width) ||
         (source.y < 0 && target.y < 0) || (source.y > height && target.y > height)) continue;
     const official = edge[2] === "official_logical_relation";
-    topologyContext.strokeStyle = official ? "rgba(47,154,97,0.52)" : "rgba(93,106,103,0.16)";
+    topologyContext.strokeStyle = official ? "rgba(25,111,65,0.82)" : "rgba(31,48,52,0.28)";
     topologyContext.beginPath();
     topologyContext.moveTo(source.x, source.y);
     topologyContext.lineTo(target.x, target.y);
@@ -156,55 +115,45 @@ function renderTopology() {
     const point = topologyScreenPoint(index);
     if (point.x < -8 || point.x > width + 8 || point.y < -8 || point.y > height + 8) continue;
     const generation = node[3] !== "substation";
-    const radius = Math.min(4.6, 1.3 + Math.sqrt(topologyDegree[index]) * 0.45);
+    const radius = Math.min(3.8, 1 + Math.sqrt(topologyDegree[index]) * 0.35);
     topologyContext.beginPath();
     if (generation) topologyContext.arc(point.x, point.y, radius, 0, Math.PI * 2);
     else topologyContext.rect(point.x - radius, point.y - radius, radius * 2, radius * 2);
-    topologyContext.fillStyle = generation ? "#e58a3a" : "#3097e8";
+    topologyContext.fillStyle = generation ? "rgba(225,111,45,0.88)" : "rgba(20,118,184,0.78)";
     topologyContext.fill();
-    if (index === topologySelectedIndex) {
-      topologyContext.strokeStyle = "#1e2728";
-      topologyContext.lineWidth = 2.2;
-      topologyContext.stroke();
-    }
+    topologyContext.strokeStyle = index === topologySelectedIndex ? "#172123" : "rgba(255,255,255,0.88)";
+    topologyContext.lineWidth = index === topologySelectedIndex ? 2.4 : 0.55;
+    topologyContext.stroke();
     visibleNodes += 1;
   }
   topologyViewportStatus.textContent =
     `${visibleNodes.toLocaleString("zh-CN")} 个可见节点 · ${visibleEdges.toLocaleString("zh-CN")} 条可见边`;
+  updateTopologyZoomLabel();
 }
 
 function resizeTopologyCanvas() {
-  const rect = topologyCanvas.getBoundingClientRect();
+  const rect = mapPane.getBoundingClientRect();
   if (!rect.width || !rect.height) return;
   const dpr = window.devicePixelRatio || 1;
   topologyCanvas.width = Math.max(1, Math.floor(rect.width * dpr));
   topologyCanvas.height = Math.max(1, Math.floor(rect.height * dpr));
   topologyContext.setTransform(dpr, 0, 0, dpr, 0, 0);
-  fitTopology();
+  requestTopologyRender();
 }
 
 function updateTopologyZoomLabel() {
-  const ratio = topologyBaseView.scale ? topologyView.scale / topologyBaseView.scale : 1;
-  topologyZoomLabel.textContent = `${Math.round(ratio * 100)}%`;
+  topologyZoomLabel.textContent = `${Math.round((window.meshViewer?.getZoomRatio() || 1) * 100)}%`;
 }
 
 function zoomTopology(factor, x = topologyCanvas.clientWidth / 2, y = topologyCanvas.clientHeight / 2) {
   if (!topologyData) return;
-  const minScale = topologyBaseView.scale * 0.8;
-  const maxScale = topologyBaseView.scale * 40;
-  const nextScale = Math.max(minScale, Math.min(maxScale, topologyView.scale * factor));
-  const ratio = nextScale / topologyView.scale;
-  topologyView.offsetX = x - (x - topologyView.offsetX) * ratio;
-  topologyView.offsetY = y - (y - topologyView.offsetY) * ratio;
-  topologyView.scale = nextScale;
-  updateTopologyZoomLabel();
-  requestTopologyRender();
+  window.meshViewer.zoomAt(factor, x, y);
 }
 
 function findTopologyNode(x, y) {
   let bestIndex = -1;
-  let bestDistance = 100;
-  for (let index = 0; index < topologyWorldPoints.length; index += 1) {
+  let bestDistance = 121;
+  for (let index = 0; index < topologyData.nodes.length; index += 1) {
     const point = topologyScreenPoint(index);
     const dx = point.x - x;
     const dy = point.y - y;
@@ -257,7 +206,7 @@ function showTopologyOverview() {
   const detailList = document.getElementById("detailList");
   document.getElementById("facilityMeta")?.remove();
   detailTitle.textContent = "Balanced v2 电网拓扑";
-  detailSub.textContent = "点击拓扑节点查看详情";
+  detailSub.textContent = "拓扑关系叠加在原 1km 网格地图上";
   if (!quality) {
     detailList.innerHTML = "";
     return;
@@ -278,14 +227,20 @@ function showTopologyOverview() {
 }
 
 async function activateTopologyView() {
+  topologyActive = true;
   mapViewButton.classList.remove("active");
   mapViewButton.setAttribute("aria-pressed", "false");
   topologyViewButton.classList.add("active");
   topologyViewButton.setAttribute("aria-pressed", "true");
   mapToolbar.hidden = true;
   topologyToolbar.hidden = false;
-  mapPane.hidden = true;
-  topologyPane.hidden = false;
+  mapLegend.hidden = true;
+  topologyLegend.hidden = false;
+  mapStatusbar.hidden = true;
+  topologyStatusbar.hidden = false;
+  topologyCanvas.hidden = false;
+  window.meshViewer?.setTopologyMode(true);
+  window.meshViewer?.resize();
   showTopologyOverview();
   await ensureTopologyLoaded();
   showTopologyOverview();
@@ -293,16 +248,21 @@ async function activateTopologyView() {
 }
 
 function activateMapView() {
+  topologyActive = false;
   topologyViewButton.classList.remove("active");
   topologyViewButton.setAttribute("aria-pressed", "false");
   mapViewButton.classList.add("active");
   mapViewButton.setAttribute("aria-pressed", "true");
   topologyToolbar.hidden = true;
   mapToolbar.hidden = false;
-  topologyPane.hidden = true;
-  mapPane.hidden = false;
+  topologyLegend.hidden = true;
+  mapLegend.hidden = false;
+  topologyStatusbar.hidden = true;
+  mapStatusbar.hidden = false;
+  topologyCanvas.hidden = true;
+  window.meshViewer?.setTopologyMode(false);
+  window.meshViewer?.resize();
   window.meshViewer?.restoreDetail();
-  window.meshViewer?.requestRender();
 }
 
 topologyViewButton.addEventListener("click", () => activateTopologyView().catch(() => {}));
@@ -311,7 +271,7 @@ document.getElementById("topologyZoomIn").addEventListener("click", () => zoomTo
 document.getElementById("topologyZoomOut").addEventListener("click", () => zoomTopology(1 / 1.35));
 document.getElementById("topologyReset").addEventListener("click", () => {
   topologySelectedIndex = -1;
-  fitTopology();
+  window.meshViewer?.resetView();
   showTopologyOverview();
 });
 
@@ -322,13 +282,7 @@ topologyCanvas.addEventListener("wheel", (event) => {
 }, { passive: false });
 
 topologyCanvas.addEventListener("pointerdown", (event) => {
-  topologyDragging = {
-    x: event.clientX,
-    y: event.clientY,
-    offsetX: topologyView.offsetX,
-    offsetY: topologyView.offsetY,
-    moved: false,
-  };
+  topologyDragging = { x: event.clientX, y: event.clientY, moved: false };
   topologyCanvas.classList.add("dragging");
   topologyCanvas.setPointerCapture(event.pointerId);
 });
@@ -338,9 +292,9 @@ topologyCanvas.addEventListener("pointermove", (event) => {
   const dx = event.clientX - topologyDragging.x;
   const dy = event.clientY - topologyDragging.y;
   if (Math.hypot(dx, dy) > 3) topologyDragging.moved = true;
-  topologyView.offsetX = topologyDragging.offsetX + dx;
-  topologyView.offsetY = topologyDragging.offsetY + dy;
-  requestTopologyRender();
+  topologyDragging.x = event.clientX;
+  topologyDragging.y = event.clientY;
+  window.meshViewer?.panBy(dx, dy);
 });
 
 topologyCanvas.addEventListener("pointerup", (event) => {
@@ -362,22 +316,24 @@ topologyCanvas.addEventListener("click", (event) => {
 
 topologyCanvas.addEventListener("dblclick", () => {
   topologySelectedIndex = -1;
-  fitTopology();
+  window.meshViewer?.resetView();
   showTopologyOverview();
 });
 
+window.addEventListener("meshviewer:render", requestTopologyRender);
 window.addEventListener("resize", () => {
-  if (!topologyPane.hidden) resizeTopologyCanvas();
+  if (topologyActive) resizeTopologyCanvas();
 });
 
 window.topologyViewer = {
   getState() {
     return {
+      active: topologyActive,
       loaded: Boolean(topologyData),
       nodeCount: topologyData?.nodes.length || 0,
       edgeCount: topologyData?.edges.length || 0,
       selectedNodeId: topologySelectedIndex >= 0 ? topologyData.nodes[topologySelectedIndex][0] : null,
-      zoom: topologyBaseView.scale ? topologyView.scale / topologyBaseView.scale : 1,
+      zoom: window.meshViewer?.getZoomRatio() || 1,
     };
   },
 };

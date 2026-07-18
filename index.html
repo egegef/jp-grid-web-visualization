@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
     <title>Japan Grid &amp; Power Network Viewer</title>
-    <link rel="stylesheet" href="./styles.css?v=20260718-topology" />
+    <link rel="stylesheet" href="./styles.css?v=20260718-topology-map" />
   </head>
   <body>
     <main class="app-shell">
@@ -79,7 +79,8 @@
       <section class="workspace">
         <div id="mapPane" class="map-pane">
           <canvas id="meshCanvas"></canvas>
-          <div class="facility-legend" aria-label="设施等级颜色">
+          <canvas id="topologyCanvas" role="img" aria-label="Balanced v2 日本电网设施拓扑图" hidden></canvas>
+          <div id="mapLegend" class="facility-legend" aria-label="设施等级颜色">
             <span><i data-level="S"></i>S</span>
             <span><i data-level="A"></i>A</span>
             <span><i data-level="B"></i>B</span>
@@ -87,20 +88,17 @@
             <span><i data-level="D"></i>D</span>
             <span><i data-level="U"></i>U/未知</span>
           </div>
-          <div class="statusbar">
-            <span id="loadStatus">加载中...</span>
-            <span id="viewportStatus"></span>
-          </div>
-        </div>
-        <div id="topologyPane" class="topology-pane" hidden>
-          <canvas id="topologyCanvas" role="img" aria-label="Balanced v2 日本电网设施拓扑图"></canvas>
-          <div class="topology-legend" aria-label="拓扑图例">
+          <div id="topologyLegend" class="topology-legend" aria-label="拓扑图例" hidden>
             <span><i class="topology-substation"></i>变电站</span>
             <span><i class="topology-generation"></i>发电站</span>
             <span><i class="topology-physical"></i>物理路径</span>
             <span><i class="topology-official"></i>官方逻辑关系</span>
           </div>
-          <div class="statusbar">
+          <div id="mapStatusbar" class="statusbar">
+            <span id="loadStatus">加载中...</span>
+            <span id="viewportStatus"></span>
+          </div>
+          <div id="topologyStatusbar" class="statusbar" hidden>
             <span id="topologyLoadStatus">切换到拓扑视图后加载</span>
             <span id="topologyViewportStatus"></span>
           </div>
@@ -114,7 +112,7 @@
         </aside>
       </section>
     </main>
-    <script src="./app.js?v=20260718-topology"></script>
-    <script src="./topology.js?v=20260718-topology"></script>
+    <script src="./app.js?v=20260718-topology-map"></script>
+    <script src="./topology.js?v=20260718-topology-map"></script>
   </body>
 </html>

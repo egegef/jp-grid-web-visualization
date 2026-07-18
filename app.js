@@ -69,6 +69,7 @@ let isDragging = false;
 let dragStart = null;
 let needsRender = false;
 let activeMetric = metrics[0];
+let topologyMode = false;
 
 const levelColors = {
   S: "#c93f2d",
@@ -351,19 +352,21 @@ function render() {
     }
   }
 
-  drawFacilities();
-
-  if (selected && selectedKind === "mesh") drawHighlight(selected, "#c45536", 2.5);
-  if (hovered && hoveredKind === "mesh" && (hovered !== selected || selectedKind !== "mesh")) {
-    drawHighlight(hovered, "#1e2728", 1.4);
-  }
-  if (selected && selectedKind === "facility") drawFacilityMarker(selected, true);
-  if (hovered && hoveredKind === "facility" && (hovered !== selected || selectedKind !== "facility")) {
-    drawFacilityMarker(hovered, true, "#1e2728");
+  if (!topologyMode) {
+    drawFacilities();
+    if (selected && selectedKind === "mesh") drawHighlight(selected, "#c45536", 2.5);
+    if (hovered && hoveredKind === "mesh" && (hovered !== selected || selectedKind !== "mesh")) {
+      drawHighlight(hovered, "#1e2728", 1.4);
+    }
+    if (selected && selectedKind === "facility") drawFacilityMarker(selected, true);
+    if (hovered && hoveredKind === "facility" && (hovered !== selected || selectedKind !== "facility")) {
+      drawFacilityMarker(hovered, true, "#1e2728");
+    }
   }
 
   const visibleFacilities = countVisibleFacilities();
   viewportStatus.textContent = `${visible.toLocaleString("zh-CN")} 个可见网格 · ${visibleFacilities.toLocaleString("zh-CN")} 个设施`;
+  window.dispatchEvent(new CustomEvent("meshviewer:render"));
 }
 
 function drawHighlight(row, stroke, width) {
@@ -700,6 +703,33 @@ function exposeReadOnlyDebugApi() {
       else updateDetail(selectedKind === "mesh" ? selected : null);
     },
     requestRender,
+    resize: resizeCanvas,
+    setTopologyMode(enabled) {
+      topologyMode = Boolean(enabled);
+      requestRender();
+    },
+    projectPoint(lon, lat) {
+      return worldToScreen(lon, lat);
+    },
+    zoomAt(factor, x = canvas.clientWidth / 2, y = canvas.clientHeight / 2) {
+      const before = screenToWorld(x, y);
+      view.scale = Math.max(base.scale * 0.75, Math.min(base.scale * 90, view.scale * factor));
+      view.offsetX = x - before.lon * view.scale;
+      view.offsetY = y + before.lat * view.scale;
+      requestRender();
+    },
+    panBy(dx, dy) {
+      view.offsetX += dx;
+      view.offsetY += dy;
+      requestRender();
+    },
+    resetView() {
+      view = { ...base };
+      requestRender();
+    },
+    getZoomRatio() {
+      return base.scale ? view.scale / base.scale : 1;
+    },
   };
 }
 
