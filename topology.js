@@ -115,14 +115,16 @@ function renderTopology() {
     const point = topologyScreenPoint(index);
     if (point.x < -8 || point.x > width + 8 || point.y < -8 || point.y > height + 8) continue;
     const generation = node[3] !== "substation";
-    const radius = Math.min(3.8, 1 + Math.sqrt(topologyDegree[index]) * 0.35);
+    const baseRadius = generation ? 3.2 : 4.2;
+    const degreeBoost = Math.min(2, Math.sqrt(topologyDegree[index]) * 0.45);
+    const radius = Math.min(7, baseRadius + degreeBoost + (node[6] ? 0.5 : 0));
     topologyContext.beginPath();
     if (generation) topologyContext.arc(point.x, point.y, radius, 0, Math.PI * 2);
     else topologyContext.rect(point.x - radius, point.y - radius, radius * 2, radius * 2);
     topologyContext.fillStyle = generation ? "rgba(225,111,45,0.88)" : "rgba(20,118,184,0.78)";
     topologyContext.fill();
     topologyContext.strokeStyle = index === topologySelectedIndex ? "#172123" : "rgba(255,255,255,0.88)";
-    topologyContext.lineWidth = index === topologySelectedIndex ? 2.4 : 0.55;
+    topologyContext.lineWidth = index === topologySelectedIndex ? 2.4 : 1.2;
     topologyContext.stroke();
     visibleNodes += 1;
   }
