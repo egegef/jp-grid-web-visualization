@@ -78,7 +78,7 @@ function topologyScreenPoint(index) {
 }
 
 function requestTopologyRender() {
-  if (topologyRenderPending || !topologyData || !topologyActive) return;
+  if (topologyRenderPending || !topologyData || !topologyActive || !window.meshViewer) return;
   topologyRenderPending = true;
   requestAnimationFrame(renderTopology);
 }
@@ -321,6 +321,13 @@ topologyCanvas.addEventListener("dblclick", () => {
 });
 
 window.addEventListener("meshviewer:render", requestTopologyRender);
+window.addEventListener("meshviewer:ready", () => {
+  if (!topologyActive) return;
+  window.meshViewer.setTopologyMode(true);
+  window.meshViewer.resize();
+  resizeTopologyCanvas();
+  showTopologyOverview();
+});
 window.addEventListener("resize", () => {
   if (topologyActive) resizeTopologyCanvas();
 });

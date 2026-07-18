@@ -869,6 +869,7 @@ async function init() {
     `${facilitySummary.substations.toLocaleString("zh-CN")} 个变电站 · ` +
     `${facilitySummary.generation.toLocaleString("zh-CN")} 个发电站`;
   resizeCanvas();
+  window.dispatchEvent(new CustomEvent("meshviewer:ready"));
 }
 
 init().catch((error) => {
